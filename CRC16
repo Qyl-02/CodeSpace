@@ -1,0 +1,86 @@
+#include "stdio.h"
+#include <stdbool.h>
+/*
+@ : 函数功能  使输入的每个字节数据按位反转
+*/
+unsigned int Reverse_8_bit(unsigned int data)
+{
+    unsigned int temp = 0,j =0;
+    for(j =0;j <4;j++)
+    {
+        temp |= (data & (0x01 << j)) << (7 - 2 * j);   // H
+        temp |= (data & (0x10 << (j))) >> (2 * j + 1); // L
+    }
+    return temp ;
+}
+unsigned int Reverse_16_bit(unsigned int data)
+{
+    unsigned int temp = 0,j =0;
+    for(j =0;j <8;j++)
+    {
+        temp |= (data & (0x0001 << j)) << (15 - 2 * j);   // H
+        temp |= (data & (0x0100 << (j))) >> (2 * j + 1); // L
+    }
+    return temp ;
+}
+/*
+@ :Crc_Res  寄存器初始值16位
+@ :*data    数据缓存数组
+@ : poly    多项式的值
+@ :len      校验\数据长度
+@ :Refin    输入反转使能   真 反转，假 不反转
+@ :Refout   输出反转使能   真 反转，假 不反转
+@ :Xorout   结果异或值
+*/
+unsigned int Calc_crc16(unsigned int Crc_Res,char* data,unsigned int poly,unsigned int len,bool Refin,bool Refout,unsigned int Xorout)
+{
+    unsigned int crc = Crc_Res,i,j,temp;
+
+    for(i=0;i<len;i++)
+    {
+        if(Refin)
+        {
+            temp = Reverse_8_bit(data[i]);//输入数据反转
+            crc  ^= (temp << 8);
+        }
+        else
+        {
+            crc  ^= ((data[i]) << 8);
+        }
+
+        for(j=0;j<8;j++)
+        {
+            if ((crc & 0x8000) > 0)
+            {
+                crc = ((crc << 1) ^ poly);// 多项式的值   
+            }
+            else
+            {
+                crc <<= 1;
+            }
+        }
+    }
+    if(Refout)
+    {
+        crc = Reverse_16_bit(crc);   // 输出数据反转
+    }
+    crc ^= Xorout;//结果异或值
+    crc &= 0xFFFF;//因为是CRC16 计算结果为两个字节，所以保留后两个字节
+    return crc;
+}
+void main()
+{
+    unsigned char array[10]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0x00};//需要校验的数据
+    unsigned int data;
+    // printf(" 请输入需要校验的数据\n");
+    // for(int i=0;i<10;i++)
+    // {
+    //     scanf("%x",&array[i]);
+    // }
+
+    data  = Calc_crc16(0x3456,array,0x1021,10,1,1,0x00);
+    printf("%x\n",data);
+
+
+
+}
